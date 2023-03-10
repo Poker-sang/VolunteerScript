@@ -23,10 +23,10 @@ public static class BrowserManager
         {
             Headless = false,
             Channel = "msedge",
-            Args = new List<string> { "--disable-blink-features=AutomationControlled" },
+            Args = new List<string> { "--blink-settings=imagesEnabled=false" },
             Timeout = timeout
         });
-        // "blink-settings=imagesEnabled=false",
+        // "--disable-blink-features=AutomationControlled" 
 
         // throw new EdgeDriverBusyException("Only one EdgeDriver instance can exist at a time.");
         // throw new("EdgeDriver is busy! You should not make two requests at the same time.");

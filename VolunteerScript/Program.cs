@@ -1,8 +1,13 @@
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Reactive.Linq;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Mirai.Net.Data.Messages.Receivers;
+using Mirai.Net.Sessions;
+using VolunteerScript.Mirai.Net;
 using VolunteerScript.Services;
 using VolunteerScript.Utilities;
 
@@ -15,12 +20,11 @@ public static partial class Program
     private enum Mode
     {
         MiraiNet,
-        MiraiCSharp,
         Local,
         Test
     }
 
-    private static readonly Mode _bot = Mode.Test;
+    private static readonly Mode _bot = Mode.MiraiNet;
 
     public static async Task Main()
     {
@@ -43,10 +47,19 @@ public static partial class Program
             {
                 case Mode.MiraiNet:
                 {
-                    break;
-                }
-                case Mode.MiraiCSharp:
-                {
+                    using var bot = new MiraiBot
+                    {
+                        Address = $"{Config.IpAddress}:{Config.Port}",
+                        QQ = Config.QqBot.ToString(),
+                        VerifyKey = Config.VerifyKey
+                    };
+
+                    await bot.LaunchAsync();
+
+                    _ = bot.MessageReceived.OfType<GroupMessageReceiver>()
+                        .Subscribe(GroupMessage.OnGroupMessage);
+
+                    Block();
                     break;
                 }
                 case Mode.Test:
@@ -87,7 +100,7 @@ public static partial class Program
         }
     }
 
-    private const string ConfigPath = "config.json";
+    private const string ConfigPath = "conf.json";
 
     private static Config GetConfig()
     {
