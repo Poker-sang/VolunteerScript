@@ -8,7 +8,7 @@ namespace VolunteerScript.Mirai.Net;
 
 public static class GroupMessage
 {
-    public static void OnGroupMessage(GroupMessageReceiver receiver)
+    public static async void OnGroupMessage(GroupMessageReceiver receiver, Config config, Options options)
     {
         // if (receiver.GroupId != _config.GroupObserved.ToString())
         //     return;
@@ -17,7 +17,7 @@ public static class GroupMessage
             switch (message)
             {
                 case FileMessage file:
-                    var fileDownloadInfo = FileManager.GetFileAsync(receiver.GroupId, file.FileId, true).GetAwaiter().GetResult().DownloadInfo;
+                    var fileDownloadInfo = (await FileManager.GetFileAsync(receiver.GroupId, file.FileId, true)).DownloadInfo;
                     url = fileDownloadInfo.Url;
                     break;
                 case ImageMessage img:
@@ -27,6 +27,6 @@ public static class GroupMessage
 
         if (url is "")
             return;
-        FillForm.From(url.DownloadStreamAsync().GetAwaiter().GetResult());
+        await FillForm.From(await url.DownloadStreamAsync(), config, options);
     }
 }

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Reactive.Linq;
 using System.Text.Json;
@@ -16,15 +15,7 @@ namespace VolunteerScript;
 public static partial class Program
 {
     public static Config Config = null!;
-
-    private enum Mode
-    {
-        MiraiNet,
-        Local,
-        Test
-    }
-
-    private static readonly Mode _bot = Mode.MiraiNet;
+    public static Options Options = new(Mode.Test, "conf.json", true);
 
     public static async Task Main()
     {
@@ -43,7 +34,7 @@ public static partial class Program
 
             _ = await BrowserManager.GetBrowser();
 
-            switch (_bot)
+            switch (Options.Mode)
             {
                 case Mode.MiraiNet:
                 {
@@ -57,14 +48,16 @@ public static partial class Program
                     await bot.LaunchAsync();
 
                     _ = bot.MessageReceived.OfType<GroupMessageReceiver>()
-                        .Subscribe(GroupMessage.OnGroupMessage);
+                        .Subscribe(r => GroupMessage.OnGroupMessage(r, Config, Options));
 
+                    Console.WriteLine($"{Config.QqBot} listening.");
                     Block();
                     break;
                 }
                 case Mode.Test:
                 {
-                    await FillForm.From(@"C:\Users\poker\Desktop\1.jpeg");
+                    await FillForm.From(@"C:\Users\poker\Desktop\1.jpeg", Config, Options);
+                    Block();
                     break;
                 }
                 case Mode.Local:
@@ -79,7 +72,7 @@ public static partial class Program
                             while (true)
                                 try
                                 {
-                                    await FillForm.From(e.FullPath);
+                                    await FillForm.From(e.FullPath, Config, Options);
                                     break;
                                 }
                                 catch (IOException)
@@ -92,7 +85,6 @@ public static partial class Program
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            Block();
         }
         finally
         {
@@ -100,12 +92,10 @@ public static partial class Program
         }
     }
 
-    private const string ConfigPath = "conf.json";
-
     private static Config GetConfig()
     {
-        if (File.Exists(ConfigPath) &&
-            JsonSerializer.Deserialize<Config>(File.ReadAllText(ConfigPath))
+        if (File.Exists(Options.ConfigPath) &&
+            JsonSerializer.Deserialize<Config>(File.ReadAllText(Options.ConfigPath))
                 is { } config)
             return config;
 

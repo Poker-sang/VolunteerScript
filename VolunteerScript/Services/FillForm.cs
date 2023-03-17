@@ -1,7 +1,9 @@
+using System;
 using System.Data;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Playwright;
 using SixLabors.ImageSharp;
 using VolunteerScript.Utilities;
 
@@ -9,13 +11,13 @@ namespace VolunteerScript.Services;
 
 public static class FillForm
 {
-    public static async Task From(Stream stream)
+    public static async Task From(Stream stream, Config config, Options options)
     {
         try
         {
             var image = (await Image.LoadAsync(stream)).QrDecode()[0];
             var form = Encoding.Default.GetString(image);
-            await Fill(form, Program.Config);
+            await Fill(form, config, options);
         }
         catch
         {
@@ -23,13 +25,13 @@ public static class FillForm
         }
     }
 
-    public static async Task From(string path)
+    public static async Task From(string path, Config config, Options options)
     {
         try
         {
             var image = (await Image.LoadAsync(path)).QrDecode()[0];
             var form = Encoding.Default.GetString(image);
-            await Fill(form, Program.Config);
+            await Fill(form, config, options);
         }
         catch
         {
@@ -37,36 +39,64 @@ public static class FillForm
         }
     }
 
-    public static async Task Fill(string url, Config config)
+    public static async Task Fill(string url, Config config, Options options)
     {
         var browser = BrowserManager.Browser;
 
+        Console.WriteLine($"Goto page {url}");
         var page = await browser.NewPageAsync();
-        await page.GotoAsync(url);
-        var elements = await page.Locator("//html/body/div[1]/form/ul/child::*").AllAsync();
+        await page.GotoAsync(url, new()
+        {
+            WaitUntil = WaitUntilState.NetworkIdle
+        });
+        Console.WriteLine("Page Loaded");
+        var elements = await page.Locator("//html/body/div[1]/form/ul/child::li").AllAsync();
+        Console.WriteLine($"Get {elements.Count} elements");
 
         foreach (var element in elements)
             try
             {
-                var label = element.Locator("//label");
-                if (await label.CountAsync() is 0)
-                    return;
-                var name = (await label.InnerTextAsync()).TrimStart('*');
-                if (name is "")
-                    continue;
-                if (name.Contains("时间"))
+                var label = element.Locator("label").First;
+                var name = (string?)null;
+                if (await label.CountAsync() is not 0)
+                {
+                    name = (await label.InnerTextAsync()).TrimStart('*');
+                    if (name is "")
+                        continue;
+                }
+                if (name is not null && name.Contains("时间"))
+                {
+                    Console.Write($"Radio\t {name}: ");
+                    var a = await element.Locator("span").CountAsync();
                     foreach (var span in await element.Locator("span").AllAsync())
                     {
-                        var input = span.Locator("input");
-                        if (!await input.IsEnabledAsync())
-                            continue;
-                        var ratio = span.Locator("label");
-                        await ratio.ClickAsync();
-                        break;
+                        var ratio = span.Locator("input");
+                        if (await ratio.CountAsync() is not 0)
+                            if (await ratio.IsEnabledAsync())
+                            {
+                                var radioLabel = span.Locator("label").First;
+                                await radioLabel.ClickAsync();
+                                Console.Write("Checked ");
+                                break;
+                            }
+                            else
+                                Console.Write("Skipped ");
                     }
+                }
                 else
                 {
                     var input = element.Locator("input");
+                    if (name is null)
+                    {
+                        Console.Write("Button\t :");
+                        if (options.AutoSubmit && await input.GetAttributeAsync("type") is "submit")
+                        {
+                            //  await input.ClickAsync();
+                            Console.Write("Submitted");
+                        }
+                        return;
+                    }
+                    Console.Write($"Text\t {name}: ");
                     var hint = await element.GetAttributeAsync("reqdtxt");
                     var value = name switch
                     {
@@ -90,11 +120,16 @@ public static class FillForm
                     };
 
                     await input.FillAsync(value!);
+                    Console.Write(value);
                 }
             }
             catch
             {
                 continue;
+            }
+            finally
+            {
+                Console.WriteLine();
             }
     }
 }
