@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Playwright;
 
@@ -13,17 +14,18 @@ public static class BrowserManager
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="timeout">minutes</param>
+    /// <param name="options"></param>
+    /// <param name="timeout">seconds</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public static async Task<IBrowser> GetBrowser(int timeout = 8000)
+    public static async Task<IBrowser> GetBrowser(Options options, int timeout = 8000)
     {
         Pw = await Playwright.CreateAsync();
         return Browser = await Pw.Chromium.LaunchAsync(new()
         {
             Headless = false,
             Channel = "msedge",
-            Args = new List<string> { "--blink-settings=imagesEnabled=false" },
+            Args = new[] { $"--blink-settings=imagesEnabled={options.ImagesEnabled.ToString().ToLower()}" },
             Timeout = timeout
         });
         // "--disable-blink-features=AutomationControlled" 

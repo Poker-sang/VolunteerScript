@@ -7,4 +7,4 @@ public enum Mode
     Test
 }
 
-public record Options(Mode Mode, string ConfigPath, bool AutoSubmit);
+public record Options(Mode Mode, string ConfigPath, bool AutoSubmit, bool ImagesEnabled, bool ObservedGroupOnly);

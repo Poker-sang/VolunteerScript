@@ -10,8 +10,8 @@ public static class GroupMessage
 {
     public static async void OnGroupMessage(GroupMessageReceiver receiver, Config config, Options options)
     {
-        // if (receiver.GroupId != _config.GroupObserved.ToString())
-        //     return;
+        if (options.ObservedGroupOnly && receiver.GroupId != config.GroupObserved.ToString())
+            return;
         var url = "";
         foreach (var message in receiver.MessageChain)
             switch (message)

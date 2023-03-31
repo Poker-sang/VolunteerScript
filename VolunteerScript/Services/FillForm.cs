@@ -45,7 +45,7 @@ public static class FillForm
 
         Console.WriteLine($"Goto page {url}");
         var page = await browser.NewPageAsync();
-        await page.GotoAsync(url, new()
+        _ = await page.GotoAsync(url, new()
         {
             WaitUntil = WaitUntilState.NetworkIdle
         });
@@ -91,7 +91,7 @@ public static class FillForm
                         Console.Write("Button\t :");
                         if (options.AutoSubmit && await input.GetAttributeAsync("type") is "submit")
                         {
-                            //  await input.ClickAsync();
+                            await input.ClickAsync();
                             Console.Write("Submitted");
                         }
                         return;

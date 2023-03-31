@@ -14,8 +14,13 @@ namespace VolunteerScript;
 
 public static partial class Program
 {
-    public static Config Config = null!;
-    public static Options Options = new(Mode.Test, "conf.json", true);
+    public static Options Options { get; } = new(Mode.Test, @".\conf.json", true, true, false);
+
+    public static Config Config { get; } =
+        File.Exists(Options.ConfigPath) &&
+        JsonSerializer.Deserialize<Config>(File.ReadAllText(Options.ConfigPath)) is { } config
+            ? config!
+            : throw new("需要设置");
 
     public static async Task Main()
     {
@@ -24,15 +29,21 @@ public static partial class Program
             static void Block()
             {
                 while (true)
-                    if (Console.ReadLine() is "exit")
-                        return;
+                {
+                    switch (Console.ReadLine())
+                    {
+                        case "exit":
+                            break;
+                        case { } path when MyRegex().IsMatch(path):
+                            _ = FillForm.From(path, Config, Options);
+                            break;
+                    }
+                }
             }
 
             HttpClientExtensions.Initialize();
 
-            Config = GetConfig();
-
-            _ = await BrowserManager.GetBrowser();
+            _ = await BrowserManager.GetBrowser(Options);
 
             switch (Options.Mode)
             {
@@ -54,32 +65,28 @@ public static partial class Program
                     Block();
                     break;
                 }
-                case Mode.Test:
-                {
-                    await FillForm.From(@"C:\Users\poker\Desktop\1.jpeg", Config, Options);
-                    Block();
-                    break;
-                }
                 case Mode.Local:
                 {
-                    var fileSystemWatcher = new FileSystemWatcher($@"C:\Softwares\Tencent\{Config.QqBot}\FileRecv")
+                    var path = $@"C:\Software\Tencent\{Config.QqBot}\FileRecv";
+                    var fileSystemWatcher = new FileSystemWatcher(path)
                     {
                         EnableRaisingEvents = true
                     };
-                    fileSystemWatcher.Created += async (o, e) =>
+                    fileSystemWatcher.Created += async (_, e) =>
                     {
                         if (MyRegex().IsMatch(e.FullPath))
-                            while (true)
-                                try
-                                {
-                                    await FillForm.From(e.FullPath, Config, Options);
-                                    break;
-                                }
-                                catch (IOException)
-                                {
-                                    _ = Task.Delay(100);
-                                }
+                            await FillForm.From(e.FullPath, Config, Options);
                     };
+                    Console.WriteLine($"{path} watching.");
+                    Block();
+                    break;
+                }
+                case Mode.Test:
+                {
+                    var path = $@"{Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)}\1.jpeg";
+                    Console.WriteLine($"{path} testing.");
+                    await FillForm.From(path, Config, Options);
+                    Block();
                     break;
                 }
                 default:
@@ -90,16 +97,6 @@ public static partial class Program
         {
             await BrowserManager.Quit();
         }
-    }
-
-    private static Config GetConfig()
-    {
-        if (File.Exists(Options.ConfigPath) &&
-            JsonSerializer.Deserialize<Config>(File.ReadAllText(Options.ConfigPath))
-                is { } config)
-            return config;
-
-        throw new("需要设置");
     }
 
     [GeneratedRegex(@"[\\\w]+\.(webp|png|jpeg|jpg|bmp)$", RegexOptions.Compiled)]
