@@ -8,9 +8,9 @@ namespace VolunteerScript.Mirai.Net;
 
 public static class GroupMessage
 {
-    public static async void OnGroupMessage(GroupMessageReceiver receiver, Config config, Options options)
+    public static async void OnGroupMessage(GroupMessageReceiver receiver, Info info, Options options)
     {
-        if (options.ObservedGroupOnly && receiver.GroupId != config.GroupObserved.ToString())
+        if (options.ObservedGroupOnly && receiver.GroupId != info.GroupObserved.ToString())
             return;
         var url = "";
         foreach (var message in receiver.MessageChain)
@@ -27,6 +27,6 @@ public static class GroupMessage
 
         if (url is "")
             return;
-        await FillForm.From(await url.DownloadStreamAsync(), config, options);
+        await FillForm.From(await url.DownloadStreamAsync(), info, options);
     }
 }

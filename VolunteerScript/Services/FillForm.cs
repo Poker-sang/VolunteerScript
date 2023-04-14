@@ -11,13 +11,13 @@ namespace VolunteerScript.Services;
 
 public static class FillForm
 {
-    public static async Task From(Stream stream, Config config, Options options)
+    public static async Task From(Stream stream, Info info, Options options)
     {
         try
         {
             var image = (await Image.LoadAsync(stream)).QrDecode()[0];
             var form = Encoding.Default.GetString(image);
-            await Fill(form, config, options);
+            await GotoFill(form, info, options);
         }
         catch
         {
@@ -25,13 +25,13 @@ public static class FillForm
         }
     }
 
-    public static async Task From(string path, Config config, Options options)
+    public static async Task From(string path, Info info, Options options)
     {
         try
         {
             var image = (await Image.LoadAsync(path)).QrDecode()[0];
             var form = Encoding.Default.GetString(image);
-            await Fill(form, config, options);
+            await GotoFill(form, info, options);
         }
         catch
         {
@@ -39,16 +39,35 @@ public static class FillForm
         }
     }
 
-    public static async Task Fill(string url, Config config, Options options)
+    private static async Task GotoFill(string url, Info info, Options options)
     {
         var browser = BrowserManager.Browser;
 
         Console.WriteLine($"Goto page {url}");
+
         var page = await browser.NewPageAsync();
-        _ = await page.GotoAsync(url, new()
+        page.Load += async (_, _) =>
         {
-            WaitUntil = WaitUntilState.NetworkIdle
-        });
+            if (!await Fill(page, info, options))
+            {
+                Console.WriteLine("Wait for more submissions, Refreshing");
+                _ = await page.ReloadAsync(new() { WaitUntil = WaitUntilState.NetworkIdle });
+            }
+        };
+
+        _ = await page.GotoAsync(url, new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+        // while (!await Fill(page, info, options))
+        // {
+        //     Console.WriteLine("Refreshing");
+        //     _ = await page.ReloadAsync(new() { WaitUntil = WaitUntilState.NetworkIdle });
+        // }
+    }
+
+
+    private static async Task<bool> Fill(IPage page, Info info, Options options)
+    {
+        Console.WriteLine();
         Console.WriteLine("Page Loaded");
         var elements = await page.Locator("//html/body/div[1]/form/ul/child::li").AllAsync();
         Console.WriteLine($"Get {elements.Count} elements");
@@ -64,17 +83,23 @@ public static class FillForm
                     if (name is "")
                         continue;
                 }
-                if (name is not null && name.Contains("时间"))
+                if (name is not null && (name.Contains("时间") || name.Contains("单选")))
                 {
                     Console.Write($"Radio\t {name}: ");
                     var a = await element.Locator("span").CountAsync();
                     foreach (var span in await element.Locator("span").AllAsync())
                     {
                         var ratio = span.Locator("input");
-                        if (await ratio.CountAsync() is not 0)
-                            if (await ratio.IsEnabledAsync())
+                        var labels = span.Locator("label");
+                        if (await ratio.CountAsync() is 1 && await labels.CountAsync() is 2)
+                            if (await ratio.IsEnabledAsync() || options.Mode is Mode.Test)
                             {
-                                var radioLabel = span.Locator("label").First;
+                                var radioLabel = labels.First;
+                                var restLabel = labels.Nth(1);
+                                var restCountString = (await restLabel.InnerTextAsync())[4..^1];
+                                var restCount = int.Parse(restCountString);
+                                if (restCount <= options.PlacesToSubmit || options.Mode is Mode.Test)
+                                    return false;
                                 await radioLabel.ClickAsync();
                                 Console.Write("Checked ");
                                 break;
@@ -94,29 +119,23 @@ public static class FillForm
                             await input.ClickAsync();
                             Console.Write("Submitted");
                         }
-                        return;
+                        return true;
                     }
                     Console.Write($"Text\t {name}: ");
                     var hint = await element.GetAttributeAsync("reqdtxt");
                     var value = name switch
                     {
-                        "姓名" => config.Name,
-                        "学号" => config.Id.ToString(),
-                        "年级" => config.Grade,
-                        "专业" => config.Major,
-                        "班级" => config.Class,
-                        "专业班级" => config.Major + config.Class,
-                        "手机" => config.Tel.ToString(),
-                        "电话" => config.Tel.ToString(),
-                        "联系方式" => config.Tel.ToString(),
-                        "QQ" => config.Qq.ToString(),
-                        _ => 0 switch
-                        {
-                            0 when !string.IsNullOrEmpty(hint) => hint,
-                            0 when name.Contains("专业班级") => config.Major + config.Class,
-                            // 0 when name.Contains("输入图片中的文字") => "中",
-                            _ => new DataTable().Compute(name.TrimEnd('='), "").ToString()
-                        }
+                        "姓名" => info.Name,
+                        "学号" => info.Id.ToString(),
+                        "年级" => info.Grade,
+                        "专业班级" => info.Major + info.Class,
+                        "专业" => info.Major,
+                        "班级" => info.Class,
+                        "手机" or "电话" or "联系方式" => info.Tel.ToString(),
+                        "QQ" => info.Qq.ToString(),
+                        _ when !string.IsNullOrEmpty(hint) => hint,
+                        _ when name.Contains("专业班级") => info.Major + info.Class,
+                        _ => new DataTable().Compute(name.TrimEnd('=', '?', '？'), "").ToString()
                     };
 
                     await input.FillAsync(value!);
@@ -131,5 +150,7 @@ public static class FillForm
             {
                 Console.WriteLine();
             }
+
+        return true;
     }
 }

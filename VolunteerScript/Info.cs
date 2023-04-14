@@ -1,6 +1,6 @@
-﻿namespace VolunteerScript;
+namespace VolunteerScript;
 
-public record Config
+public record Info
 (
     uint QqBot,
     string IpAddress,

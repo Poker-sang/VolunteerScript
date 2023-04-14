@@ -14,11 +14,11 @@ namespace VolunteerScript;
 
 public static partial class Program
 {
-    public static Options Options { get; } = new(Mode.Test, @".\conf.json", true, true, false);
+    public static Options Options { get; } = new(Mode.Local, @".\info.json", 4, false, true, false);
 
-    public static Config Config { get; } =
+    public static Info Config { get; } =
         File.Exists(Options.ConfigPath) &&
-        JsonSerializer.Deserialize<Config>(File.ReadAllText(Options.ConfigPath)) is { } config
+        JsonSerializer.Deserialize<Info>(File.ReadAllText(Options.ConfigPath)) is { } config
             ? config!
             : throw new("需要设置");
 
@@ -83,9 +83,14 @@ public static partial class Program
                 }
                 case Mode.Test:
                 {
-                    var path = $@"{Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)}\1.jpeg";
-                    Console.WriteLine($"{path} testing.");
-                    await FillForm.From(path, Config, Options);
+                    var path = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory) + @"\1.jpeg";
+                    if (File.Exists(path))
+                    {
+                        Console.WriteLine($"{path} testing.");
+                        await FillForm.From(path, Config, Options);
+                    }
+                    else
+                        Console.WriteLine($"{path} does not exist.");
                     Block();
                     break;
                 }
