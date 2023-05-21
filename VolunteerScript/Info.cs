@@ -2,16 +2,16 @@ namespace VolunteerScript;
 
 public record Info
 (
-    uint QqBot,
-    string IpAddress,
-    ushort Port,
-    string VerifyKey,
-    uint GroupObserved,
-    string Name,
-    uint Id,
-    uint Qq,
-    ulong Tel,
-    string Grade,
-    string Major,
-    string Class
+    string IpAddress = "localhost",
+    ushort Port = 8080,
+    uint QqBot = 0,
+    string VerifyKey = "",
+    uint GroupObserved = 0,
+    string Name = "",
+    uint Id = 0,
+    uint Qq = 0,
+    ulong Tel = 0,
+    string Grade = "",
+    string Major = "",
+    string Class = ""
 );

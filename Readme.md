@@ -6,11 +6,11 @@
 
 ## 运行方法
 
-先直接运行一次，按照要求安装Playwright后，会报错：“需要信息”
+先直接运行一次，按照要求安装Playwright后，会自动打开新建的info.json文件
 
 ### 运行前提
 
-默认在运行目录下，编写信息info.json文件：
+按照要求编写信息info.json文件：
 
 ```json
 {
@@ -18,10 +18,10 @@
     "IpAddress": "localhost",
     // mirai代理端口，一般为8080
     "Port": 8080,
-    // mirai验证密钥
-    "VerifyKey": "xxx",
     // QQ机器人号码（加了志愿群的号，不使用QQ机器人也会用到此条目）
     "QqBot": 123,
+    // mirai验证密钥
+    "VerifyKey": "xxx",
     // 监听的群
     "GroupObserved": 123,
     // 你的名字
@@ -49,9 +49,12 @@ Options记录代表运行设置，有以下几个字段（属性）
 | - | - | - |
 | Mode | Mode | 运行模式 |
 | string | ConfigPath | 设置路径 |
+| int | PlacesToSubmit | 剩余多少名额时才去提交 |
 | bool | AutoSubmit | 是否自动提交表单 |
 | bool | ImagesEnabled | 网页是否显示图片（可以提高网页加载速度） |
 | bool | ObservedGroupOnly | 机器人是否只监听指定群的图片消息 |
+| string | QqFilesReceive | QQ机器人接收到的文件的位置 |
+| string | TestFile | 测试时使用的图片文件（默认是桌面上名为1.jpeg的图片） |
 
 ### 运行说明
 
@@ -61,6 +64,8 @@ Options记录代表运行设置，有以下几个字段（属性）
 
 | 内容 | 说明 |
 | - | - |
+| edit | 打开info.json并编辑 |
+| load | 重新加载info.json文件 |
 | exit | 退出程序 |
 | （任意图片的本地路径） | 打开本地图片并自动填写（要求后缀名为webp、png、jpeg、jpg、bmp其中一种） |
 
@@ -71,8 +76,8 @@ Mode目前有以下几种模式
 | 内容 | 描述 | 说明 |
 | - | - | - |
 | MiraiNet | 机器人 | 自动监控机器人账号的图片消息和图片文件 |
-| Local | 本地 | 自动监控机器人账号文件夹下的文件变化 |
-| Test | 测试 | 直接使用桌面上名为1.jpg的图片（用于测试Playwright自动化） |
+| Local | 本地 | 自动监控Options.QqFilesReceive下的文件变化 |
+| Test | 测试 | 直接使用Options.TestFile来测试Playwright自动化 |
 
 注：
 

@@ -45,7 +45,9 @@ public static class FillForm
 
         Console.WriteLine($"Goto page {url}");
 
-        var page = await browser.NewPageAsync();
+        var newContext = await browser.NewContextAsync(BrowserManager.Pw.Devices["iPhone 12"]);
+        var page = await newContext.NewPageAsync();
+
         page.Load += async (_, _) =>
         {
             if (!await Fill(page, info, options))
@@ -65,11 +67,13 @@ public static class FillForm
     }
 
 
-    private static async Task<bool> Fill(IPage page, Info info, Options options)
+    private static async Task<bool> Fill(IPage  page, Info info, Options options)
     {
         Console.WriteLine();
         Console.WriteLine("Page Loaded");
-        var elements = await page.Locator("//html/body/div[1]/form/ul/child::li").AllAsync();
+
+        // var elements = await page.Locator("//html/body/div[1]/form/ul/child::li").AllAsync();
+        var elements = await page.Locator("//html/body/div[1]/div[2]/form/ul/child::li").AllAsync();
         Console.WriteLine($"Get {elements.Count} elements");
 
         foreach (var element in elements)
@@ -98,7 +102,7 @@ public static class FillForm
                                 var restLabel = labels.Nth(1);
                                 var restCountString = (await restLabel.InnerTextAsync())[4..^1];
                                 var restCount = int.Parse(restCountString);
-                                if (restCount <= options.PlacesToSubmit || options.Mode is Mode.Test)
+                                if (restCount >= options.PlacesToSubmit || options.Mode is Mode.Test)
                                     return false;
                                 await radioLabel.ClickAsync();
                                 Console.Write("Checked ");
